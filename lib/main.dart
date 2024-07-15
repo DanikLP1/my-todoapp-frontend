@@ -1,5 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:my_todo_app/screens/profile_page.dart';
+import 'package:my_todo_app/screens/register_page/register_screen.dart';
+import 'package:provider/provider.dart';
 
 import 'blocs/auth/bloc.dart';
 import 'blocs/user/bloc.dart';
@@ -31,33 +34,48 @@ class MyBlocObserver extends BlocObserver {
 }
 
 void main() {
-  final navigatorKey = GlobalKey<NavigatorState>();
-  final ApiService apiService = ApiService(baseUrl: 'http://10.0.2.2:3333');
-  final AuthRepository authRepository = AuthRepository(apiService: apiService);
-  final UserRepository userRepository = UserRepository(apiService: apiService);
-
-  Bloc.observer = MyBlocObserver();
   WidgetsFlutterBinding.ensureInitialized();
+  Bloc.observer = MyBlocObserver();
+  
+  final navigatorKey = GlobalKey<NavigatorState>();
+  final apiService = ApiService(baseUrl: 'http://10.0.2.2:3333', navigatorKey: navigatorKey);
 
-  runApp(MyApp(authRepository: authRepository, userRepository: userRepository, apiService: apiService));
+  runApp(
+    MultiProvider(
+      providers: [
+        Provider<ApiService>.value(value: apiService),
+        ProxyProvider<ApiService, AuthRepository>(
+          update: (context, apiService, _) => AuthRepository(apiService: apiService),
+        ),
+        ProxyProvider<ApiService, UserRepository>(
+          update: (context, apiService, _) => UserRepository(apiService: apiService),
+        ),
+      ],
+      child: MyApp(navigatorKey: navigatorKey),
+    ),
+  );
 }
 
 class MyApp extends StatelessWidget {
-  final AuthRepository authRepository;
-  final UserRepository userRepository;
-  final ApiService apiService;
+  final GlobalKey<NavigatorState> navigatorKey;
 
-  MyApp({required this.authRepository, required this.userRepository, required this.apiService});
+  MyApp({required this.navigatorKey});
 
   @override
   Widget build(BuildContext context) {
     return MultiBlocProvider(
       providers: [
         BlocProvider<UserBloc>(
-          create: (context) => UserBloc(userRepository: userRepository),
+          create: (context) => UserBloc(
+            userRepository: Provider.of<UserRepository>(context, listen: false),
+          ),
         ),
         BlocProvider<AuthBloc>(
-          create: (context) => AuthBloc(authRepository: authRepository, userBloc: BlocProvider.of<UserBloc>(context), apiService: apiService),
+          create: (context) => AuthBloc(
+            authRepository: Provider.of<AuthRepository>(context, listen: false),
+            userBloc: BlocProvider.of<UserBloc>(context, listen: false),
+            apiService: Provider.of<ApiService>(context, listen: false),
+          ),
         ),
       ],
       child: MaterialApp(
@@ -65,7 +83,14 @@ class MyApp extends StatelessWidget {
         title: 'Flutter Demo',
         theme: AppTheme.lightTheme,
         darkTheme: AppTheme.darkTheme,
-        themeMode: ThemeMode.system, // Меняет тему в зависимости от системной темы
+        themeMode: ThemeMode.system,
+        navigatorKey: navigatorKey,
+        routes: {
+          '/register': (context) => RegisterScreen(),
+          '/login': (context) => LoginScreen(),
+          '/main': (context) => MainPage(),
+          '/profile': (context) => ProfilePage(), // Добавьте другие экраны здесь
+        },
         home: AuthChecker(),
       ),
     );
@@ -78,7 +103,7 @@ class AuthChecker extends StatelessWidget {
     return BlocBuilder<AuthBloc, AuthState>(
       builder: (context, state) {
         if (state is AuthAuthenticated) {
-          return MainPage(); // Показываем MainPage для авторизованного пользователя
+          return MainPage();
         } else {
           return LoginScreen();
         }
@@ -86,4 +111,3 @@ class AuthChecker extends StatelessWidget {
     );
   }
 }
-

@@ -4,13 +4,16 @@ import 'package:flutter/material.dart';
 import 'package:my_todo_app/models/tokens.dart';
 import 'package:my_todo_app/utils/snackbar_util.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:my_todo_app/blocs/auth/bloc.dart';
 
 class ApiService {
   final Dio _dio;
   final String _baseUrl;
   AuthToken? _authToken;
+  final GlobalKey<NavigatorState> navigatorKey;
 
-  ApiService({required String baseUrl})
+  ApiService({required String baseUrl, required this.navigatorKey})
       : _baseUrl = baseUrl,
         _dio = Dio(BaseOptions(baseUrl: baseUrl)) {
     _dio.interceptors.add(InterceptorsWrapper(
@@ -82,11 +85,12 @@ class ApiService {
           return retryResponse;
         } else {
           // Failed to refresh tokens, handle accordingly
+          await _handleUnauthorized();
           throw DioException(
             requestOptions: e.requestOptions,
             response: e.response,
             type: DioExceptionType.badResponse,
-            error: 'Token refresh failed: ${e.response?.data['message']}',
+            error: 'Ваш срок авторизации истек, войдите заново: ${e.response?.data['message']}',
           );
         }
       } else {
@@ -94,8 +98,8 @@ class ApiService {
         throw DioException(
           requestOptions: e.requestOptions,
           response: e.response,
-          type: DioExceptionType.badResponse,
-          error: e.response?.data['message'] ?? 'Unknown error',
+          type: DioExceptionType.unknown,
+          error: e.response?.data['message'] ?? 'Неизвестная ошибка',
         );
       }
     }
@@ -128,7 +132,7 @@ class ApiService {
     } on DioException catch (e) {
       // Handle refresh token failure
       debugPrint('Failed to refresh tokens: ${e.message}');
-      SnackBarUtil.errorSnackBar('Failed to refresh tokens');
+      SnackBarUtil.errorSnackBar('Ваш срок авторизации истек, войдите заново');
       await clearTokens(); // Clear tokens if refresh fails
       return false;
     }
@@ -138,7 +142,6 @@ class ApiService {
     final prefs = await SharedPreferences.getInstance();
     await prefs.setString('access_token', token.accessToken);
     await prefs.setString('refresh_token', token.refreshToken);
-    _authToken = token;
     setAccessToken(token.accessToken);
     setRefreshToken(token.refreshToken);
   }
@@ -156,10 +159,14 @@ class ApiService {
     final accessToken = prefs.getString('access_token');
     final refreshToken = prefs.getString('refresh_token');
     if (accessToken != null && refreshToken != null) {
-      final token = AuthToken(accessToken: accessToken, refreshToken: refreshToken);
-      _authToken = token;
-      return token;
+      return AuthToken(accessToken: accessToken, refreshToken: refreshToken);
     }
     return null;
+  }
+
+  Future<void> _handleUnauthorized() async {
+    await clearTokens();
+    navigatorKey.currentState?.pushNamedAndRemoveUntil('/login', (route) => false);
+    BlocProvider.of<AuthBloc>(navigatorKey.currentContext!).add(LogoutRequested());
   }
 }
