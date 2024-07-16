@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:my_todo_app/screens/profile_page.dart';
 import 'package:my_todo_app/screens/register_page/register_screen.dart';
 import 'package:provider/provider.dart';
@@ -85,6 +86,15 @@ class MyApp extends StatelessWidget {
         darkTheme: AppTheme.darkTheme,
         themeMode: ThemeMode.system,
         navigatorKey: navigatorKey,
+        localizationsDelegates: [
+          GlobalMaterialLocalizations.delegate,
+          GlobalWidgetsLocalizations.delegate,
+          GlobalCupertinoLocalizations.delegate,
+        ],
+        supportedLocales: [
+          const Locale('en', 'US'), // Английский
+          const Locale('ru', 'RU'), // Русский
+        ],
         routes: {
           '/register': (context) => RegisterScreen(),
           '/login': (context) => LoginScreen(),

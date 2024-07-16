@@ -30,6 +30,8 @@ environment:
 dependencies:
   flutter:
     sdk: flutter
+  flutter_localizations:
+    sdk: flutter
 
 
   # The following adds the Cupertino Icons font to your application.
@@ -42,6 +44,8 @@ dependencies:
   dio:
   google_fonts:
   provider:
+  flutter_launcher_icons:
+  table_calendar: 
 
 dev_dependencies:
   flutter_test:
@@ -54,6 +58,11 @@ dev_dependencies:
   # rules and activating additional ones.
   flutter_lints: ^3.0.0
 
+flutter_icons:
+  android: true
+  ios: true
+  image_path: "assets/images/ice-cream.png"
+  adaptive_icon_foreground: "assets/images/ice-cream_foreground.png"
 # For information on the generic Dart part of this file, see the
 # following page: https://dart.dev/tools/pub/pubspec
 

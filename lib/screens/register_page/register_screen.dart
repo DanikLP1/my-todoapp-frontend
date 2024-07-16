@@ -154,8 +154,10 @@ class _RegisterScreenState extends State<RegisterScreen> {
                       SizedBox(width: 5),
                       InkWell(
                         onTap: () {
-                          Navigator.pushReplacement(
-                            context, MaterialPageRoute(builder: (context) => LoginScreen()));
+                          Navigator.of(context).pushNamedAndRemoveUntil(
+                            '/login',
+                            (route) => false,
+                          );
                         },
                         child: Text(
                           'Войти',

@@ -18,14 +18,10 @@ class LoginScreen extends StatelessWidget {
         body: BlocListener<AuthBloc, AuthState>(
           listener: (context, state) {
             if (state is AuthFailure) {
-              log(state.error);
               ScaffoldMessenger.of(context).showSnackBar(
                 SnackBarUtil.errorSnackBar(state.error),
               );
             } else if (state is AuthAuthenticated) {
-              ScaffoldMessenger.of(context).showSnackBar(
-                SnackBarUtil.successSnackBar("Успешная авторизация"),
-              );
               Navigator.of(context).pushReplacement(
                 MaterialPageRoute(builder: (context) => MainPage()),
               );
@@ -138,8 +134,8 @@ class LoginScreen extends StatelessWidget {
                       SizedBox(width: 5),
                       InkWell(
                         onTap: () {
-                          Navigator.of(context).pushAndRemoveUntil(
-                            MaterialPageRoute(builder: (context) => RegisterScreen()),
+                          Navigator.of(context).pushNamedAndRemoveUntil(
+                            '/register',
                             (route) => false,
                           );
                         },

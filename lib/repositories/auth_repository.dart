@@ -12,18 +12,18 @@ class AuthRepository {
   Future<void> login(String email, String password) async {
     final response = await apiService.post('/auth/local/signin', data: {'email': email, 'password': password});
     final token = AuthToken.fromJson(response.data);
-    await apiService.saveTokens(token);
+    await apiService.saveTokensToStorage(token.accessToken, token.refreshToken);
   }
 
   Future<void> register(String username, String email, String password) async {
     final response = await apiService.post('/auth/local/signup', data: {'username': username, 'email': email, 'password': password});
     final token = AuthToken.fromJson(response.data);
-    await apiService.saveTokens(token);
+    await apiService.saveTokensToStorage(token.accessToken, token.refreshToken);
   }
 
   Future<void> logout() async {
     try {
-      final token = await apiService.getTokens();
+      final token = await apiService.getTokensFromStorage();
       if (token != null) {
         await apiService.post('/auth/logout');
       }

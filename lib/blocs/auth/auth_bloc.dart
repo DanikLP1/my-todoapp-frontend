@@ -19,9 +19,9 @@ class AuthBloc extends Bloc<AuthEvent, AuthState> {
   }
 
   Future<void> _checkAuthenticationStatus() async {
-    final token = await apiService.getTokens();
+    final token = await apiService.getTokensFromStorage();
     if (token != null) {
-      apiService.setAccessToken(token.accessToken);
+      apiService.setTokens(token.accessToken, token.refreshToken);
       emit(AuthAuthenticated(token: token));
       userBloc.add(LoadUserRequested());
     } else {
@@ -33,9 +33,9 @@ class AuthBloc extends Bloc<AuthEvent, AuthState> {
     emit(AuthLoading());
     try {
       await authRepository.login(event.email, event.password);
-      final token = await apiService.getTokens();
+      final token = await apiService.getTokensFromStorage();
       if (token != null) {
-        apiService.setAccessToken(token.accessToken);
+        apiService.setTokens(token.accessToken, token.refreshToken);
         emit(AuthAuthenticated(token: token));
         userBloc.add(LoadUserRequested());
       } else {
@@ -50,9 +50,9 @@ class AuthBloc extends Bloc<AuthEvent, AuthState> {
     emit(AuthLoading());
     try {
       await authRepository.register(event.username, event.email, event.password);
-      final token = await apiService.getTokens();
+      final token = await apiService.getTokensFromStorage();
       if (token != null) {
-        apiService.setAccessToken(token.accessToken);
+        apiService.setTokens(token.accessToken, token.refreshToken);
         emit(AuthAuthenticated(token: token));
         userBloc.add(LoadUserRequested());
       } else {
