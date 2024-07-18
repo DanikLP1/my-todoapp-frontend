@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
+import 'package:my_todo_app/blocs/schedule/schedule_bloc.dart';
+import 'package:my_todo_app/repositories/schedule_repository.dart';
 import 'package:my_todo_app/screens/profile_page.dart';
 import 'package:my_todo_app/screens/register_page/register_screen.dart';
 import 'package:provider/provider.dart';
@@ -51,6 +53,9 @@ void main() {
         ProxyProvider<ApiService, UserRepository>(
           update: (context, apiService, _) => UserRepository(apiService: apiService),
         ),
+        ProxyProvider<ApiService, ScheduleRepository>(
+          update: (context, apiService, _) => ScheduleRepository(apiService: apiService),
+        ),
       ],
       child: MyApp(navigatorKey: navigatorKey),
     ),
@@ -71,9 +76,15 @@ class MyApp extends StatelessWidget {
             userRepository: Provider.of<UserRepository>(context, listen: false),
           ),
         ),
+        BlocProvider<ScheduleBloc>(
+          create: (context) => ScheduleBloc(
+            scheduleRepository: Provider.of<ScheduleRepository>(context, listen: false),
+          ),
+        ),
         BlocProvider<AuthBloc>(
           create: (context) => AuthBloc(
             authRepository: Provider.of<AuthRepository>(context, listen: false),
+            scheduleBloc: Provider.of<ScheduleBloc>(context, listen: false),
             userBloc: BlocProvider.of<UserBloc>(context, listen: false),
             apiService: Provider.of<ApiService>(context, listen: false),
           ),

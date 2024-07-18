@@ -1,5 +1,7 @@
 // auth_bloc.dart
 import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:my_todo_app/blocs/schedule/schedule_bloc.dart';
+import 'package:my_todo_app/blocs/schedule/schedule_event.dart';
 
 import '../../repositories/api_service.dart';
 import '../../repositories/auth_repository.dart';
@@ -9,9 +11,10 @@ import 'bloc.dart';
 class AuthBloc extends Bloc<AuthEvent, AuthState> {
   final AuthRepository authRepository;
   final UserBloc userBloc;
+  final ScheduleBloc scheduleBloc;
   final ApiService apiService;
 
-  AuthBloc({required this.authRepository, required this.userBloc, required this.apiService}) : super(AuthInitial()) {
+  AuthBloc({required this.authRepository, required this.userBloc, required this.scheduleBloc, required this.apiService}) : super(AuthInitial()) {
     _checkAuthenticationStatus();
     on<LoginRequested>(_onLoginRequested);
     on<LogoutRequested>(_onLogoutRequested);
@@ -24,6 +27,7 @@ class AuthBloc extends Bloc<AuthEvent, AuthState> {
       apiService.setTokens(token.accessToken, token.refreshToken);
       emit(AuthAuthenticated(token: token));
       userBloc.add(LoadUserRequested());
+      scheduleBloc.add(LoadScheduleRequested());
     } else {
       emit(AuthUnauthenticated());
     }

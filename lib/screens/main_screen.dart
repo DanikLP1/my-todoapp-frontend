@@ -4,9 +4,9 @@ import 'package:my_todo_app/screens/calendar_page/calendar_page.dart';
 import 'package:my_todo_app/screens/login_page/login_screen.dart';
 
 import '../blocs/auth/bloc.dart';
+import '../models/event.dart';
 import 'home_page.dart';
 import 'profile_page.dart';
-import '../models/task.dart';
 
 class MainPage extends StatefulWidget {
   @override
@@ -15,36 +15,11 @@ class MainPage extends StatefulWidget {
 
 class _MainPageState extends State<MainPage> {
   int _selectedIndex = 0;
-  Map<DateTime, List<Event>> _events = {};
   final PageController _pageController = PageController();
 
   @override
   void initState() {
     super.initState();
-    _initializeEvents();
-  }
-
-  void _initializeEvents() {
-    _events = {
-      DateTime.utc(2024, 7, 13): [
-        Event('Событие 1', 'Описание события 1'),
-        Event('Событие 2', 'Описание события 2')
-      ],
-      DateTime.utc(2024, 7, 14): [
-        Event('Событие 3', 'Описание события 3')
-      ],
-      DateTime.utc(2024, 7, 15): [
-        Event('Событие 4', 'Описание события 4'),
-        Event('Событие 5', 'Описание события 5')
-      ],
-      DateTime.utc(2024, 7, 16): [
-        Event('Событие 6', 'Описание события 6'),
-        Event('Событие 7', 'Описание события 7'),
-        Event('Событие 8', 'Описание события 8'),
-        Event('Событие 9', 'Описание события 9'),
-        Event('Событие 10', 'Описание события 10')
-      ],
-    };
   }
 
   @override
@@ -66,11 +41,10 @@ class _MainPageState extends State<MainPage> {
 
   @override
   Widget build(BuildContext context) {
-    final todayEvents = _events[DateTime.utc(DateTime.now().year, DateTime.now().month, DateTime.now().day)] ?? [];
 
     List<Widget> _pages = <Widget>[
-      HomePage(events: todayEvents),
-      CalendarPage(events: _events),
+      HomePage(),
+      CalendarPage(),
       ProfilePage(),
     ];
 
