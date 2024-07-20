@@ -46,6 +46,10 @@ dependencies:
   provider:
   flutter_launcher_icons:
   table_calendar: 
+  shimmer: 
+  intl:
+  flutter_local_notifications:
+  timezone:
 
 dev_dependencies:
   flutter_test:

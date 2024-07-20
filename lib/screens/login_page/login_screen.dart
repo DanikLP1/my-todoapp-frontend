@@ -13,6 +13,15 @@ class LoginScreen extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final mediaQuery = MediaQuery.of(context);
+    final width = mediaQuery.size.width;
+    final height = mediaQuery.size.height;
+    final padding = width * 0.05;
+    final imageSize = width * 0.3;
+    final buttonHeight = height * 0.07;
+    final buttonWidth = width * 0.8;
+    final spacing = height * 0.02;
+    
     return SafeArea(
       child: Scaffold(
         body: BlocListener<AuthBloc, AuthState>(
@@ -33,23 +42,25 @@ class LoginScreen extends StatelessWidget {
           },
           child: SingleChildScrollView(
             child: Padding(
-              padding: EdgeInsets.all(30),
+              padding: EdgeInsets.all(padding),
               child: Column(
                 children: [
                   Image.asset(
                     'assets/images/ice-cream.png',
-                    height: 100,
-                    width: 100,
+                    height: imageSize,
+                    width: imageSize,
                   ),
+                  SizedBox(height: spacing),
                   Text(
                     'Добро пожаловать',
-                    style: Theme.of(context).textTheme.displayLarge,
+                    style: Theme.of(context).textTheme.displayLarge?.copyWith(fontSize: width * 0.06),
                   ),
+                  SizedBox(height: spacing),
                   Text(
-                    'Войдите, чтобы продлолжить',
-                    style: Theme.of(context).textTheme.titleLarge,
+                    'Войдите, чтобы продолжить',
+                    style: Theme.of(context).textTheme.titleLarge?.copyWith(fontSize: width * 0.05),
                   ),
-                  SizedBox(height: 50),
+                  SizedBox(height: height * 0.05),
                   Form(
                     child: Column(
                       children: [
@@ -66,7 +77,7 @@ class LoginScreen extends StatelessWidget {
                             labelText: 'Электронная почта',
                           ),
                         ),
-                        SizedBox(height: 30),
+                        SizedBox(height: spacing),
                         TextFormField(
                           controller: _passwordController,
                           decoration: InputDecoration(
@@ -90,11 +101,14 @@ class LoginScreen extends StatelessWidget {
                       onPressed: () {},
                       child: Text(
                         'Забыли пароль?',
-                        style: TextStyle(fontWeight: FontWeight.bold),
+                        style: TextStyle(
+                          fontWeight: FontWeight.bold,
+                          fontSize: width * 0.04,
+                        ),
                       ),
                     ),
                   ),
-                  SizedBox(height: 20),
+                  SizedBox(height: spacing),
                   BlocBuilder<AuthBloc, AuthState>(
                     builder: (context, state) {
                       if (state is AuthLoading) {
@@ -102,10 +116,10 @@ class LoginScreen extends StatelessWidget {
                       }
 
                       return MaterialButton(
-                        height: 50,
-                        minWidth: 300,
+                        height: buttonHeight,
+                        minWidth: buttonWidth,
                         shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.all(Radius.circular(8)),
+                          borderRadius: BorderRadius.all(Radius.circular(buttonHeight / 2)),
                         ),
                         color: Theme.of(context).primaryColor,
                         onPressed: () {
@@ -118,7 +132,7 @@ class LoginScreen extends StatelessWidget {
                         child: Text(
                           'ВОЙТИ',
                           style: TextStyle(
-                            fontSize: 18,
+                            fontSize: width * 0.05,
                             color: Colors.white,
                             fontWeight: FontWeight.bold,
                           ),
@@ -126,12 +140,15 @@ class LoginScreen extends StatelessWidget {
                       );
                     },
                   ),
-                  SizedBox(height: 20),
+                  SizedBox(height: spacing),
                   Row(
                     mainAxisAlignment: MainAxisAlignment.center,
                     children: [
-                      Text("У вас нету аккаунта?"),
-                      SizedBox(width: 5),
+                      Text(
+                        "У вас нет аккаунта?",
+                        style: TextStyle(fontSize: width * 0.04),
+                      ),
+                      SizedBox(width: width * 0.02),
                       InkWell(
                         onTap: () {
                           Navigator.of(context).pushNamedAndRemoveUntil(
@@ -140,8 +157,12 @@ class LoginScreen extends StatelessWidget {
                           );
                         },
                         child: Text(
-                          'Создать новый аккаунт',
-                          style: TextStyle(color: Theme.of(context).primaryColor, fontWeight: FontWeight.bold,),
+                          'Создать аккаунт',
+                          style: TextStyle(
+                            color: Theme.of(context).primaryColor,
+                            fontWeight: FontWeight.bold,
+                            fontSize: width * 0.04,
+                          ),
                         ),
                       ),
                     ],

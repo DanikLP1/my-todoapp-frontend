@@ -1,12 +1,15 @@
 import 'package:flutter/material.dart';
 
 class AppTheme {
+  static final primaryColor = Color.fromARGB(255, 24, 136, 216);
+  static final secondaryColor = Colors.cyan[200]!;
+
   static final lightTheme = ThemeData(
-    primaryColor: Color(0xff003CC0),
+    primaryColor: primaryColor,
     scaffoldBackgroundColor: Colors.white,
     colorScheme: ColorScheme.light(
-      primary: Color(0xff003CC0),
-      secondary: Colors.blue[300]!,
+      primary: primaryColor,
+      secondary: secondaryColor,
     ),
     inputDecorationTheme: InputDecorationTheme(
       prefixIconColor: Colors.blue[300],
@@ -20,29 +23,36 @@ class AppTheme {
       displayLarge: TextStyle(
         fontSize: 30,
         fontWeight: FontWeight.bold,
-        color: Color(0xff003CC0),
+        color: primaryColor,
       ),
       titleLarge: TextStyle(
         fontSize: 20,
         fontWeight: FontWeight.w300,
-        color: Color(0xff003CC0),
+        color: primaryColor,
       ),
     ),
     buttonTheme: ButtonThemeData(
-      buttonColor: Color(0xff003CC0),
+      buttonColor: primaryColor,
       shape: RoundedRectangleBorder(
         borderRadius: BorderRadius.all(Radius.circular(8)),
       ),
       textTheme: ButtonTextTheme.primary,
     ),
+    // Добавление цветов для skeleton в светлой теме
+    extensions: <ThemeExtension>[
+      SkeletonColors(
+        baseColor: Colors.grey[300]!,
+        highlightColor: Colors.grey[100]!,
+      ),
+    ],
   );
 
   static final darkTheme = ThemeData(
-    primaryColor: Color(0xff003CC0),
+    primaryColor: primaryColor,
     scaffoldBackgroundColor: Color.fromARGB(255, 28, 28, 28),
     colorScheme: ColorScheme.dark(
-      primary: Color(0xff003CC0),
-      secondary: Colors.blue[300]!,
+      primary: primaryColor,
+      secondary: secondaryColor,
     ),
     inputDecorationTheme: InputDecorationTheme(
       prefixIconColor: Colors.blue[300],
@@ -56,20 +66,51 @@ class AppTheme {
       displayLarge: TextStyle(
         fontSize: 30,
         fontWeight: FontWeight.bold,
-        color: Color(0xff003CC0),
+        color: primaryColor,
       ),
       titleLarge: TextStyle(
         fontSize: 20,
         fontWeight: FontWeight.w300,
-        color: Color(0xff003CC0),
+        color: primaryColor,
       ),
     ),
     buttonTheme: ButtonThemeData(
-      buttonColor: Color(0xff003CC0),
+      buttonColor: primaryColor,
       shape: RoundedRectangleBorder(
         borderRadius: BorderRadius.all(Radius.circular(8)),
       ),
       textTheme: ButtonTextTheme.primary,
     ),
+    // Добавление цветов для skeleton в темной теме
+    extensions: <ThemeExtension>[
+      SkeletonColors(
+        baseColor: Colors.grey[700]!,
+        highlightColor: Colors.grey[500]!,
+      ),
+    ],
   );
+}
+
+class SkeletonColors extends ThemeExtension<SkeletonColors> {
+  final Color baseColor;
+  final Color highlightColor;
+
+  SkeletonColors({required this.baseColor, required this.highlightColor});
+
+  @override
+  SkeletonColors copyWith({Color? baseColor, Color? highlightColor}) {
+    return SkeletonColors(
+      baseColor: baseColor ?? this.baseColor,
+      highlightColor: highlightColor ?? this.highlightColor,
+    );
+  }
+
+  @override
+  SkeletonColors lerp(ThemeExtension<SkeletonColors>? other, double t) {
+    if (other is! SkeletonColors) return this;
+    return SkeletonColors(
+      baseColor: Color.lerp(baseColor, other.baseColor, t)!,
+      highlightColor: Color.lerp(highlightColor, other.highlightColor, t)!,
+    );
+  }
 }

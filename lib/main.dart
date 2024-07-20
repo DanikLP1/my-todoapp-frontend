@@ -1,15 +1,19 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:flutter_local_notifications/flutter_local_notifications.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:my_todo_app/blocs/schedule/schedule_bloc.dart';
 import 'package:my_todo_app/repositories/schedule_repository.dart';
-import 'package:my_todo_app/screens/profile_page.dart';
+import 'package:my_todo_app/screens/profile_page/profile_page.dart';
 import 'package:my_todo_app/screens/register_page/register_screen.dart';
+import 'package:my_todo_app/utils/notifications.dart';
 import 'package:provider/provider.dart';
+
+import 'package:timezone/data/latest.dart' as tz;
 
 import 'blocs/auth/bloc.dart';
 import 'blocs/user/bloc.dart';
-import 'repositories/api_service.dart';
+import 'utils/api_service.dart';
 import 'repositories/auth_repository.dart';
 import 'repositories/user_repository.dart';
 import 'screens/login_page/login_screen.dart';
@@ -36,12 +40,16 @@ class MyBlocObserver extends BlocObserver {
   }
 }
 
-void main() {
+final FlutterLocalNotificationsPlugin flutterLocalNotificationsPlugin = FlutterLocalNotificationsPlugin();
+void main() async {
   WidgetsFlutterBinding.ensureInitialized();
   Bloc.observer = MyBlocObserver();
   
   final navigatorKey = GlobalKey<NavigatorState>();
-  final apiService = ApiService(baseUrl: 'http://10.0.2.2:3333', navigatorKey: navigatorKey);
+  final apiService = ApiService(baseUrl: 'http://100.117.159.20:3333', navigatorKey: navigatorKey);
+  
+  await NotificationService.init();
+  tz.initializeTimeZones();
 
   runApp(
     MultiProvider(

@@ -3,7 +3,7 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:my_todo_app/blocs/schedule/schedule_bloc.dart';
 import 'package:my_todo_app/blocs/schedule/schedule_event.dart';
 
-import '../../repositories/api_service.dart';
+import '../../utils/api_service.dart';
 import '../../repositories/auth_repository.dart';
 import '../user/bloc.dart';
 import 'bloc.dart';
@@ -42,6 +42,7 @@ class AuthBloc extends Bloc<AuthEvent, AuthState> {
         apiService.setTokens(token.accessToken, token.refreshToken);
         emit(AuthAuthenticated(token: token));
         userBloc.add(LoadUserRequested());
+        scheduleBloc.add(LoadScheduleRequested());
       } else {
         emit(AuthFailure(error: 'Failed to retrieve tokens after login'));
       }
@@ -59,6 +60,7 @@ class AuthBloc extends Bloc<AuthEvent, AuthState> {
         apiService.setTokens(token.accessToken, token.refreshToken);
         emit(AuthAuthenticated(token: token));
         userBloc.add(LoadUserRequested());
+        scheduleBloc.add(LoadScheduleRequested());
       } else {
         emit(AuthFailure(error: 'Failed to retrieve tokens after registration'));
       }

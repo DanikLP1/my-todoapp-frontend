@@ -36,15 +36,24 @@ class Task extends Equatable {
 
   Map<String, dynamic> toJson() {
     return {
-      'id': id,
-      'listId': listId,
       'title': title,
       'description': description,
       'dueDate': dueDate?.toIso8601String(),
       'completed': completed,
-      'createdAt': createdAt.toIso8601String(),
-      'updatedAt': updatedAt.toIso8601String(),
     };
+  }
+
+  Task markAsCompleted() {
+    return Task(
+      id: id,
+      listId: listId,
+      title: title,
+      description: description,
+      dueDate: dueDate,
+      completed: true,
+      createdAt: createdAt,
+      updatedAt: DateTime.now(),
+    );
   }
 
   @override

@@ -2,7 +2,7 @@
 import 'package:my_todo_app/models/todo_list.dart';
 import 'package:my_todo_app/models/task.dart';
 
-import 'api_service.dart';
+import '../utils/api_service.dart';
 
 class ScheduleRepository {
   final ApiService apiService;
@@ -24,6 +24,14 @@ class ScheduleRepository {
       await apiService.post('/todolists/${task.listId}/tasks', data: task.toJson());
     } catch (e) {
       throw Exception('Failed to save event: $e');
+    }
+  }
+
+  Future<void> updateEvent(Task task) async {
+    try {
+      await apiService.put('/todolists/${task.listId}/tasks/${task.id}', data: task.toJson());
+    } catch(e) {
+      throw Exception('Failed to update event: $e');
     }
   }
 

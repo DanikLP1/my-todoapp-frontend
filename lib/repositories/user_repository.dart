@@ -3,7 +3,7 @@
 import 'package:dio/dio.dart';
 
 import '../models/user.dart';
-import 'api_service.dart';
+import '../utils/api_service.dart';
 
 class UserRepository {
   final ApiService apiService;

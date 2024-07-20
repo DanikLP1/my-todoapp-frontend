@@ -2,7 +2,7 @@
 import 'package:my_todo_app/models/tokens.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
-import 'api_service.dart';
+import '../utils/api_service.dart';
 
 class AuthRepository {
   final ApiService apiService;

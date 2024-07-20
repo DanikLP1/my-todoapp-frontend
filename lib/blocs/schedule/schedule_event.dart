@@ -28,3 +28,12 @@ class RemoveEventRequested extends ScheduleEvent {
   @override
   List<Object> get props => [listId, taskId];
 }
+
+class CompleteTaskRequested extends ScheduleEvent {
+  final Task task;
+
+  CompleteTaskRequested(this.task);
+
+  @override
+  List<Object> get props => [task];
+}

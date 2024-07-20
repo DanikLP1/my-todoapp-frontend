@@ -1,46 +1,54 @@
-import 'dart:developer';
-
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:my_todo_app/screens/calendar_page/skeleton_calendar.dart';
+import 'package:my_todo_app/screens/crud_tasks/task_creation_page.dart';
 import 'package:my_todo_app/screens/widgets/task_card.dart';
 import 'package:my_todo_app/utils/snackbar_util.dart';
 import 'package:table_calendar/table_calendar.dart';
 import 'package:my_todo_app/models/todo_list.dart';
 import 'package:my_todo_app/models/task.dart';
-import 'package:my_todo_app/blocs/schedule/schedule_bloc.dart';
-
 import '../../blocs/schedule/bloc.dart';
-
 
 class CalendarPage extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(
-        actions: [
-          IconButton(
-            onPressed: () {
-              context.read<ScheduleBloc>().add(LoadScheduleRequested());
-            }, 
-            icon: Icon(Icons.refresh),
-          ),
-        ],
-      ),
-      body: BlocBuilder<ScheduleBloc, ScheduleState>(
+      body: BlocConsumer<ScheduleBloc, ScheduleState>(
+        listener: (context, state) {
+          if (state is ScheduleError) {
+            ScaffoldMessenger.of(context).showSnackBar(
+              SnackBarUtil.errorSnackBar(state.error),
+            );
+          }
+        },
         builder: (context, state) {
           if (state is ScheduleLoaded) {
-            return CalendarPageView(toDoLists: state.todoLists);
+            return RefreshIndicator(
+              onRefresh: () async {
+                context.read<ScheduleBloc>().add(LoadScheduleRequested());
+              },
+              child: CalendarPageView(
+                toDoLists: state.todoLists,
+              ),
+            );
           } else if (state is ScheduleLoading) {
-            return Center(child: CircularProgressIndicator());
-          } else if (state is ScheduleError) {
-            WidgetsBinding.instance?.addPostFrameCallback((_) {
-              ScaffoldMessenger.of(context).showSnackBar(
-                SnackBarUtil.errorSnackBar(state.error),
-              );
-            });
-            return Center(child: Text('Failed to load user'));
+            return Column(
+              children: [
+                CalendarShimmerLoader(),
+                Expanded(
+                  child: TaskListShimmerLoader(),
+                ),
+              ],
+            );
           } else {
-            return Center(child: CircularProgressIndicator());
+            return Column(
+              children: [
+                CalendarShimmerLoader(),
+                Expanded(
+                  child: TaskListShimmerLoader(),
+                ),
+              ],
+            );
           }
         },
       ),
@@ -77,9 +85,9 @@ class _CalendarPageViewState extends State<CalendarPageView> with AutomaticKeepA
   List<Task> _getTasksForDay(DateTime day, List<ToDoList> todoLists) {
     var selectedToDoList = todoLists.firstWhere(
       (todoList) =>
-          todoList.date == null 
-          ? DateTime(todoList.createdAt.year, todoList.createdAt.month, todoList.createdAt.day).isAtSameMomentAs(DateTime(day.year, day.month, day.day))
-          : DateTime(todoList.date!.year, todoList.date!.month, todoList.date!.day).isAtSameMomentAs(DateTime(day.year, day.month, day.day)),
+          todoList.date == null
+              ? DateTime(todoList.createdAt.year, todoList.createdAt.month, todoList.createdAt.day).isAtSameMomentAs(DateTime(day.year, day.month, day.day))
+              : DateTime(todoList.date!.year, todoList.date!.month, todoList.date!.day).isAtSameMomentAs(DateTime(day.year, day.month, day.day)),
       orElse: () => ToDoList(id: -1, userId: -1, title: '', date: null, createdAt: day, updatedAt: day, tasks: []),
     );
 
@@ -90,8 +98,14 @@ class _CalendarPageViewState extends State<CalendarPageView> with AutomaticKeepA
   Widget build(BuildContext context) {
     super.build(context); // Ensure that super.build is called for AutomaticKeepAliveClientMixin
     final theme = Theme.of(context);
+    final mediaQuery = MediaQuery.of(context);
+    final width = mediaQuery.size.width;
+    final height = mediaQuery.size.height;
+    final paddingFactor = width * 0.02; // Adjust the padding based on screen width
+    final marginFactor = height * 0.01; // Adjust the margin based on screen height
+
     return Padding(
-      padding: const EdgeInsets.all(8.0),
+      padding: EdgeInsets.all(paddingFactor),
       child: Column(
         children: [
           TableCalendar(
@@ -140,7 +154,7 @@ class _CalendarPageViewState extends State<CalendarPageView> with AutomaticKeepA
               titleCentered: true,
               titleTextStyle: TextStyle(
                 color: theme.colorScheme.primary,
-                fontSize: 20.0,
+                fontSize: width * 0.05, // Adjust the font size based on screen width
               ),
               leftChevronIcon: Icon(
                 Icons.chevron_left,
@@ -198,20 +212,41 @@ class _CalendarPageViewState extends State<CalendarPageView> with AutomaticKeepA
               },
             ),
           ),
-          const SizedBox(height: 16),
+          SizedBox(height: marginFactor * 1.6), // Adjust the size based on margin factor
           ElevatedButton(
-            onPressed: () {}, 
-            child: Text("Создать задание")
-          ),
-          const SizedBox(height: 16),
-          Expanded(
-            child: _getTasksForDay(_selectedDay!, todoLists).isEmpty
-                ? Center(child: Text('На этот день нет запланированных задач, отдыхайте!'))
-                : ListView(
-                    children: _getTasksForDay(_selectedDay!, todoLists).map((task) {
-                      return TaskCard(task: task, onTap: () {});
-                    }).toList(),
+            onPressed: () {
+              Navigator.of(context).push(
+                MaterialPageRoute(
+                  builder: (context) => TaskCreationPage(
+                    selectedDate: _selectedDay,
                   ),
+                ),
+              );
+            },
+            child: Text('Создать задачу'),
+          ),
+          SizedBox(height: marginFactor * 1.6), // Adjust the size based on margin factor
+          Expanded(
+            child: BlocBuilder<ScheduleBloc, ScheduleState>(
+              builder: (context, state) {
+                if (state is ScheduleLoaded) {
+                  List<Task> tasks = _getTasksForDay(_selectedDay!, state.todoLists);
+                  return tasks.isEmpty
+                      ? Center(child: Text('На этот день нет запланированных задач, отдыхайте!'))
+                      : ListView(
+                          padding: EdgeInsets.symmetric(horizontal: width * 0.04),
+                          children: tasks.map((task) {
+                            return Padding(
+                              padding: EdgeInsets.symmetric(vertical: marginFactor),
+                              child: TaskCard(task: task, onTap: () {}),
+                            );
+                          }).toList(),
+                        );
+                } else {
+                  return Center(child: Text('Ошибка загрузки задач.'));
+                }
+              },
+            ),
           ),
         ],
       ),
@@ -219,9 +254,12 @@ class _CalendarPageViewState extends State<CalendarPageView> with AutomaticKeepA
   }
 
   Widget _buildEventsMarker(int count, Color color) {
+    final mediaQuery = MediaQuery.of(context);
+    final width = mediaQuery.size.width;
+
     return Container(
-      width: 20.0,
-      height: 20.0,
+      width: width * 0.05, // Adjust the size based on screen width
+      height: width * 0.05, // Adjust the size based on screen width
       decoration: BoxDecoration(
         color: color,
         shape: BoxShape.circle,
@@ -229,7 +267,7 @@ class _CalendarPageViewState extends State<CalendarPageView> with AutomaticKeepA
       child: Center(
         child: Text(
           count.toString(),
-          style: TextStyle(color: Colors.white),
+          style: TextStyle(color: Colors.white, fontSize: width * 0.038), // Adjust the font size based on screen width
         ),
       ),
     );
@@ -251,19 +289,6 @@ class _CalendarPageViewState extends State<CalendarPageView> with AutomaticKeepA
         return CalendarFormat.month;
       default:
         return CalendarFormat.month;
-    }
-  }
-
-  String _getButtonText() {
-    switch (_calendarFormat) {
-      case CalendarFormat.month:
-        return 'Месяц';
-      case CalendarFormat.twoWeeks:
-        return '2 Недели';
-      case CalendarFormat.week:
-        return 'Неделя';
-      default:
-        return 'Месяц';
     }
   }
 }
