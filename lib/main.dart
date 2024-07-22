@@ -1,14 +1,16 @@
+import 'dart:developer';
+
 import 'package:flutter/material.dart';
+import 'package:flutter_background/flutter_background.dart';
+import 'package:provider/provider.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
-import 'package:flutter_local_notifications/flutter_local_notifications.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:my_todo_app/blocs/schedule/schedule_bloc.dart';
 import 'package:my_todo_app/repositories/schedule_repository.dart';
 import 'package:my_todo_app/screens/profile_page/profile_page.dart';
 import 'package:my_todo_app/screens/register_page/register_screen.dart';
+import 'package:my_todo_app/screens/theme/theme_notifier.dart';
 import 'package:my_todo_app/utils/notifications.dart';
-import 'package:provider/provider.dart';
-
 import 'package:timezone/data/latest.dart' as tz;
 
 import 'blocs/auth/bloc.dart';
@@ -40,20 +42,36 @@ class MyBlocObserver extends BlocObserver {
   }
 }
 
-final FlutterLocalNotificationsPlugin flutterLocalNotificationsPlugin = FlutterLocalNotificationsPlugin();
-void main() async {
+Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
   Bloc.observer = MyBlocObserver();
-  
+
+  final themeNotifier = await ThemeNotifier.load();
+
   final navigatorKey = GlobalKey<NavigatorState>();
   final apiService = ApiService(baseUrl: 'http://100.117.159.20:3333', navigatorKey: navigatorKey);
-  
+
   await NotificationService.init();
   tz.initializeTimeZones();
+
+  final androidConfig = FlutterBackgroundAndroidConfig(
+    notificationTitle: "flutter_background example app",
+    notificationText: "Background notification for keeping the example app running in the background",
+    notificationImportance: AndroidNotificationImportance.Default,
+    notificationIcon: AndroidResource(name: 'background_icon', defType: 'drawable'), // Default is ic_launcher from folder mipmap
+  );
+  bool success = await FlutterBackground.initialize(androidConfig: androidConfig);
+  if(success) {
+    FlutterBackground.enableBackgroundExecution();
+  }
+  log(success.toString());
 
   runApp(
     MultiProvider(
       providers: [
+        ChangeNotifierProvider(
+          create: (context) => themeNotifier,
+        ),
         Provider<ApiService>.value(value: apiService),
         ProxyProvider<ApiService, AuthRepository>(
           update: (context, apiService, _) => AuthRepository(apiService: apiService),
@@ -77,6 +95,7 @@ class MyApp extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final themeNotifier = Provider.of<ThemeNotifier>(context);
     return MultiBlocProvider(
       providers: [
         BlocProvider<UserBloc>(
@@ -101,8 +120,8 @@ class MyApp extends StatelessWidget {
       child: MaterialApp(
         debugShowCheckedModeBanner: false,
         title: 'Flutter Demo',
-        theme: AppTheme.lightTheme,
-        darkTheme: AppTheme.darkTheme,
+        theme: themeNotifier.lightTheme,
+        darkTheme: themeNotifier.darkTheme,
         themeMode: ThemeMode.system,
         navigatorKey: navigatorKey,
         localizationsDelegates: [
@@ -111,14 +130,14 @@ class MyApp extends StatelessWidget {
           GlobalCupertinoLocalizations.delegate,
         ],
         supportedLocales: [
-          const Locale('en', 'US'), // Английский
-          const Locale('ru', 'RU'), // Русский
+          const Locale('en', 'US'),
+          const Locale('ru', 'RU'),
         ],
         routes: {
           '/register': (context) => RegisterScreen(),
           '/login': (context) => LoginScreen(),
           '/main': (context) => MainPage(),
-          '/profile': (context) => ProfilePage(), // Добавьте другие экраны здесь
+          '/profile': (context) => ProfilePage(),
         },
         home: AuthChecker(),
       ),

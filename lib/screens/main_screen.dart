@@ -1,11 +1,12 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:salomon_bottom_bar/salomon_bottom_bar.dart';
 import 'package:my_todo_app/screens/calendar_page/calendar_page.dart';
 import 'package:my_todo_app/screens/login_page/login_screen.dart';
+import 'package:my_todo_app/screens/home_page.dart';
+import 'package:my_todo_app/screens/profile_page/profile_page.dart';
 
 import '../blocs/auth/bloc.dart';
-import 'home_page.dart';
-import 'profile_page/profile_page.dart';
 
 class MainPage extends StatefulWidget {
   @override
@@ -13,34 +14,35 @@ class MainPage extends StatefulWidget {
 }
 
 class _MainPageState extends State<MainPage> {
+  late final PageController _pageController;
   int _selectedIndex = 0;
-  final PageController _pageController = PageController();
 
   @override
   void initState() {
     super.initState();
-    _pageController.addListener(_handlePageChange);
+    _pageController = PageController(
+      initialPage: _selectedIndex,
+      viewportFraction: 1.0, // Установите в 1.0 для полного экрана
+    );
   }
 
   @override
   void dispose() {
-    _pageController.removeListener(_handlePageChange);
     _pageController.dispose();
     super.dispose();
   }
 
-  void _handlePageChange() {
-    setState(() {
-      _selectedIndex = _pageController.page!.round();
-    });
-  }
-
   void _onItemTapped(int index) {
-    _pageController.animateToPage(
-      index,
-      duration: Duration(milliseconds: 300),
-      curve: Curves.easeInOut,
-    );
+    if (_selectedIndex != index) {
+      _pageController.animateToPage(
+        index,
+        duration: Duration(milliseconds: 300),
+        curve: Curves.easeInOut,
+      );
+      setState(() {
+        _selectedIndex = index;
+      });
+    }
   }
 
   @override
@@ -56,6 +58,17 @@ class _MainPageState extends State<MainPage> {
       'Задачи',
       'Профиль',
     ];
+
+    // Получение ширины и высоты экрана
+    final mediaQuery = MediaQuery.of(context);
+    final screenWidth = mediaQuery.size.width;
+    final screenHeight = mediaQuery.size.height;
+
+    // Адаптивные размеры
+    final bottomBarHeight = screenHeight * 0.1; // 10% от высоты экрана
+    final iconSize = screenWidth * 0.079; // 8% от ширины экрана
+    final fontSize = screenWidth * 0.045; // 4.5% от ширины экрана
+    final itemPadding = EdgeInsets.symmetric(horizontal: screenWidth * 0.05, vertical: screenHeight * 0.01);
 
     return Scaffold(
       appBar: AppBar(
@@ -88,69 +101,33 @@ class _MainPageState extends State<MainPage> {
         },
         children: _pages,
       ),
-      bottomNavigationBar: BottomAppBar(
-        child: Stack(
-          children: [
-            AnimatedBuilder(
-              animation: _pageController,
-              builder: (context, child) {
-                double alignmentX = -1.0;
-                if (_pageController.hasClients && _pageController.page != null) {
-                  alignmentX = (_pageController.page! - 1) * (2 / (_pages.length - 1));
-                } else {
-                  alignmentX = (_selectedIndex - 1) * (2 / (_pages.length - 1));
-                }
-                return Align(
-                  alignment: Alignment(alignmentX, 0),
-                  child: Container(
-                    height: 56,
-                    width: MediaQuery.of(context).size.width / 3,
-                    decoration: BoxDecoration(
-                      color: Theme.of(context).colorScheme.primary.withOpacity(0.3),
-                      borderRadius: BorderRadius.circular(20),
-                    ),
-                  ),
-                );
-              },
+      bottomNavigationBar: Container(
+        height: bottomBarHeight, // Адаптивная высота BottomBar
+        padding: EdgeInsets.symmetric(horizontal: screenWidth * 0.03), // Адаптивный вертикальный padding
+        child: SalomonBottomBar(
+          currentIndex: _selectedIndex,
+          onTap: _onItemTapped,
+          itemPadding: itemPadding, // Адаптивный padding элементов
+          items: [
+            SalomonBottomBarItem(
+              icon: Icon(Icons.home, size: iconSize), // Адаптивный размер иконок
+              title: Text('Главная', style: TextStyle(fontSize: fontSize)), // Адаптивный размер текста
+              selectedColor: Theme.of(context).primaryColor,
+              unselectedColor: Colors.grey,
             ),
-            Row(
-              mainAxisAlignment: MainAxisAlignment.spaceAround,
-              children: [
-                _buildBottomNavigationBarItem(Icons.home, 'Главная', 0),
-                _buildBottomNavigationBarItem(Icons.calendar_month, 'Задачи', 1),
-                _buildBottomNavigationBarItem(Icons.person, 'Профиль', 2),
-              ],
+            SalomonBottomBarItem(
+              icon: Icon(Icons.calendar_month, size: iconSize),
+              title: Text('Задачи', style: TextStyle(fontSize: fontSize)),
+              selectedColor: Theme.of(context).primaryColor,
+              unselectedColor: Colors.grey,
+            ),
+            SalomonBottomBarItem(
+              icon: Icon(Icons.person, size: iconSize),
+              title: Text('Профиль', style: TextStyle(fontSize: fontSize)),
+              selectedColor: Theme.of(context).primaryColor,
+              unselectedColor: Colors.grey,
             ),
           ],
-        ),
-      ),
-    );
-  }
-
-  Widget _buildBottomNavigationBarItem(IconData icon, String label, int index) {
-    final isSelected = _selectedIndex == index;
-    final color = isSelected ? Theme.of(context).primaryColor : Colors.grey;
-    final iconSize = isSelected ? 30.0 : 24.0;
-
-    return Expanded(
-      child: InkWell(
-        onTap: () => _onItemTapped(index),
-        child: Container(
-          height: 56,
-          child: Row(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              Icon(icon, color: color, size: iconSize),
-              if (isSelected)
-                Padding(
-                  padding: const EdgeInsets.only(left: 8.0),
-                  child: Text(
-                    label,
-                    style: TextStyle(color: color, fontWeight: FontWeight.bold),
-                  ),
-                ),
-            ],
-          ),
         ),
       ),
     );

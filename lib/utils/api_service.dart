@@ -15,7 +15,12 @@ class ApiService {
 
   ApiService({required String baseUrl, required this.navigatorKey})
       : _baseUrl = baseUrl,
-        _dio = Dio(BaseOptions(baseUrl: baseUrl)) {
+        _dio = Dio(BaseOptions(
+          baseUrl: baseUrl,
+          connectTimeout: const Duration(seconds: 10),
+          receiveTimeout: const Duration(seconds: 20),
+          )
+        ) {
     _dio.interceptors.add(InterceptorsWrapper(
       onRequest: (options, handler) async {
         final accessToken = await _getAccessToken();

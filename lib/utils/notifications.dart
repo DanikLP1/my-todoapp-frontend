@@ -1,5 +1,4 @@
 import 'dart:developer';
-
 import 'package:flutter_local_notifications/flutter_local_notifications.dart';
 import 'package:timezone/timezone.dart' as tz;
 
@@ -14,13 +13,13 @@ class NotificationService {
     const AndroidInitializationSettings androidInitializationSettings =
         AndroidInitializationSettings("@mipmap/ic_launcher");
 
-    const DarwinInitializationSettings IOSInitializitionSettogns =
+    const DarwinInitializationSettings IOSInitializationSettings =
         DarwinInitializationSettings();
 
     const InitializationSettings initializationSettings =
         InitializationSettings(
             android: androidInitializationSettings,
-            iOS: IOSInitializitionSettogns);
+            iOS: IOSInitializationSettings);
 
     await flutterLocalNotificationsPlugin.initialize(
       initializationSettings,
@@ -37,7 +36,7 @@ class NotificationService {
 
   static Future<void> showInstantNotification(String title, String body) async {
     const NotificationDetails platformChannelSpecifics = NotificationDetails(
-        android: AndroidNotificationDetails("channetId", "channel_Name",
+        android: AndroidNotificationDetails("channelId", "channel_Name",
             importance: Importance.high, priority: Priority.high),
         iOS: DarwinNotificationDetails());
     await flutterLocalNotificationsPlugin.show(
@@ -47,7 +46,7 @@ class NotificationService {
   static Future<void> scheduleNotification(
       String title, String body, DateTime scheduleTime) async {
     const NotificationDetails platformChannelSpecifics = NotificationDetails(
-        android: AndroidNotificationDetails("channetId", "channel_Name",
+        android: AndroidNotificationDetails("channelId", "channel_Name",
             importance: Importance.high, priority: Priority.high),
         iOS: DarwinNotificationDetails());
     await flutterLocalNotificationsPlugin.zonedSchedule(
@@ -58,8 +57,14 @@ class NotificationService {
         platformChannelSpecifics,
         uiLocalNotificationDateInterpretation:
             UILocalNotificationDateInterpretation.absoluteTime,
-        matchDateTimeComponents: DateTimeComponents.dateAndTime
+        androidAllowWhileIdle: true,
+        matchDateTimeComponents: DateTimeComponents.dateAndTime,
     );
-    log("Notification sended");
+    log("Notification scheduled");
+  }
+
+  static Future<void> showScheduledNotifications() async {
+    // Здесь можно вызвать showInstantNotification для тестирования
+    await showInstantNotification('Scheduled Title', 'Scheduled Body');
   }
 }

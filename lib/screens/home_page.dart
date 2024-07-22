@@ -4,6 +4,7 @@ import 'package:my_todo_app/blocs/schedule/bloc.dart';
 import 'package:my_todo_app/models/task.dart';
 import 'package:my_todo_app/models/todo_list.dart';
 import 'package:my_todo_app/screens/calendar_page/skeleton_calendar.dart';
+import 'package:my_todo_app/screens/error_screen.dart';
 import 'package:my_todo_app/screens/widgets/task_card.dart';
 import 'package:my_todo_app/utils/notifications.dart';
 import 'package:my_todo_app/utils/snackbar_util.dart';
@@ -24,7 +25,12 @@ class HomePage extends StatelessWidget {
                 SnackBarUtil.errorSnackBar(state.error),
               );
             });
-            return Center(child: Text('Failed to load data'));
+            return ErrorScreen(
+              errorMessage: "Не удалось загрузить данные, проверьте ваше интернет соединение", 
+              onRetry: () {
+                context.read<ScheduleBloc>().add(LoadScheduleRequested());
+              }
+            );
           } else {
             return Center(child: CircularProgressIndicator());
           }

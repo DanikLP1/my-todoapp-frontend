@@ -50,6 +50,10 @@ dependencies:
   intl:
   flutter_local_notifications:
   timezone:
+  flutter_colorpicker:
+  device_info_plus:
+  flutter_background: 
+  salomon_bottom_bar:
 
 dev_dependencies:
   flutter_test:

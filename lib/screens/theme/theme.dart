@@ -7,6 +7,7 @@ class AppTheme {
   static final lightTheme = ThemeData(
     primaryColor: primaryColor,
     scaffoldBackgroundColor: Colors.white,
+    cardColor: Colors.white, // Цвет карточки в светлой теме
     colorScheme: ColorScheme.light(
       primary: primaryColor,
       secondary: secondaryColor,
@@ -49,7 +50,7 @@ class AppTheme {
 
   static final darkTheme = ThemeData(
     primaryColor: primaryColor,
-    scaffoldBackgroundColor: Color.fromARGB(255, 28, 28, 28),
+    scaffoldBackgroundColor: Color.fromARGB(255, 28, 28, 28),// Цвет карточки в темной теме
     colorScheme: ColorScheme.dark(
       primary: primaryColor,
       secondary: secondaryColor,

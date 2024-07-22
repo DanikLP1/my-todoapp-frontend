@@ -1,7 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:intl/intl.dart';
 import 'package:my_todo_app/screens/calendar_page/skeleton_calendar.dart';
 import 'package:my_todo_app/screens/crud_tasks/task_creation_page.dart';
+import 'package:my_todo_app/screens/error_screen.dart';
 import 'package:my_todo_app/screens/widgets/task_card.dart';
 import 'package:my_todo_app/utils/snackbar_util.dart';
 import 'package:table_calendar/table_calendar.dart';
@@ -23,13 +25,19 @@ class CalendarPage extends StatelessWidget {
         },
         builder: (context, state) {
           if (state is ScheduleLoaded) {
-            return RefreshIndicator(
-              onRefresh: () async {
-                context.read<ScheduleBloc>().add(LoadScheduleRequested());
-              },
-              child: CalendarPageView(
-                toDoLists: state.todoLists,
-              ),
+            return Column(
+              children: [
+                Expanded(
+                  child: RefreshIndicator(
+                    onRefresh: () async {
+                      context.read<ScheduleBloc>().add(LoadScheduleRequested());
+                    },
+                    child: CalendarPageView(
+                      toDoLists: state.todoLists,
+                    ),
+                  ),
+                ),
+              ],
             );
           } else if (state is ScheduleLoading) {
             return Column(
@@ -39,6 +47,13 @@ class CalendarPage extends StatelessWidget {
                   child: TaskListShimmerLoader(),
                 ),
               ],
+            );
+          } else if (state is ScheduleError) {
+            return ErrorScreen(
+              errorMessage: "Не удалось загрузить данные, проверьте ваше интернет соединение", 
+              onRetry: () {
+                context.read<ScheduleBloc>().add(LoadScheduleRequested());
+              }
             );
           } else {
             return Column(
@@ -82,6 +97,121 @@ class _CalendarPageViewState extends State<CalendarPageView> with AutomaticKeepA
     todoLists = widget.toDoLists;
   }
 
+  @override
+  Widget build(BuildContext context) {
+    super.build(context); // Ensure that super.build is called for AutomaticKeepAliveClientMixin
+    return BlocBuilder<ScheduleBloc, ScheduleState>(
+      builder: (context, state) {
+        if (state is ScheduleLoaded) {
+          todoLists = state.todoLists; // Обновление списка задач
+        }
+        return Padding(
+          padding: EdgeInsets.all(16),
+          child: Column(
+            children: [
+              TableCalendar(
+                locale: 'ru_RU',
+                firstDay: DateTime.utc(2010, 10, 16),
+                lastDay: DateTime.utc(2030, 3, 14),
+                focusedDay: _focusedDay,
+                selectedDayPredicate: (day) {
+                  return isSameDay(_selectedDay, day);
+                },
+                onDaySelected: (selectedDay, focusedDay) {
+                  setState(() {
+                    _selectedDay = selectedDay;
+                    _focusedDay = focusedDay;
+                  });
+                },
+                calendarFormat: _calendarFormat,
+                onFormatChanged: (format) {
+                  setState(() {
+                    _calendarFormat = format;
+                  });
+                },
+                startingDayOfWeek: StartingDayOfWeek.monday,
+                eventLoader: (day) => _getTasksForDay(day, todoLists),
+                calendarStyle: CalendarStyle(
+                  selectedDecoration: BoxDecoration(
+                    color: Theme.of(context).colorScheme.primary,
+                    shape: BoxShape.circle,
+                  ),
+                  todayDecoration: BoxDecoration(
+                    color: Theme.of(context).colorScheme.secondary,
+                    shape: BoxShape.circle,
+                  ),
+                  weekendTextStyle: TextStyle().copyWith(color: Theme.of(context).colorScheme.secondary), // Цвет выходных
+                ),
+                headerStyle: HeaderStyle(
+                  formatButtonVisible: false,
+                  titleCentered: true,
+                  titleTextStyle: TextStyle(
+                    color: Theme.of(context).colorScheme.secondary
+                  ),
+                  rightChevronIcon: Icon(
+                    Icons.chevron_right_rounded,
+                    color: Theme.of(context).colorScheme.secondary,
+                  ),
+                  leftChevronIcon: Icon(
+                    Icons.chevron_left_rounded,
+                    color: Theme.of(context).colorScheme.secondary,
+                  )
+                ),
+                calendarBuilders: CalendarBuilders(
+                  dowBuilder: (context, day) {
+                    if (day.weekday == DateTime.saturday || day.weekday == DateTime.sunday) {
+                      final text = DateFormat.E('ru_RU').format(day);
+                      return Center(
+                        child: Text(
+                          text,
+                          style: TextStyle(color: Theme.of(context).colorScheme.secondary),
+                        ),
+                      );
+                    }
+                    return null;
+                  },
+                  markerBuilder: (context, date, events) {
+                    if (events.isNotEmpty) {
+                      return Positioned(
+                        bottom: 1,
+                        child: _buildEventsMarker(events.length, Theme.of(context).colorScheme.secondary),
+                      );
+                    }
+                    return SizedBox.shrink();
+                  },
+                ),
+              ),
+              SizedBox(height: 16),
+              ElevatedButton(
+                onPressed: () {
+                  Navigator.of(context).push(
+                    MaterialPageRoute(
+                      builder: (context) => TaskCreationPage(
+                        selectedDate: _selectedDay,
+                      ),
+                    ),
+                  );
+                },
+                child: Text('Создать задачу'),
+              ),
+              SizedBox(height: 16),
+              Expanded(
+                child: ListView(
+                  children: _getTasksForDay(_selectedDay ?? DateTime.now(), todoLists)
+                      .map((task) => Padding(
+                            padding: EdgeInsets.symmetric(vertical: 8),
+                            child: TaskCard(task: task, onTap: () {}),
+                          ))
+                      .toList(),
+                ),
+              ),
+            ],
+          ),
+        );
+      },
+    );
+  }
+
   List<Task> _getTasksForDay(DateTime day, List<ToDoList> todoLists) {
     var selectedToDoList = todoLists.firstWhere(
       (todoList) =>
@@ -90,176 +220,13 @@ class _CalendarPageViewState extends State<CalendarPageView> with AutomaticKeepA
               : DateTime(todoList.date!.year, todoList.date!.month, todoList.date!.day).isAtSameMomentAs(DateTime(day.year, day.month, day.day)),
       orElse: () => ToDoList(id: -1, userId: -1, title: '', date: null, createdAt: day, updatedAt: day, tasks: []),
     );
-
     return selectedToDoList.tasks;
   }
 
-  @override
-  Widget build(BuildContext context) {
-    super.build(context); // Ensure that super.build is called for AutomaticKeepAliveClientMixin
-    final theme = Theme.of(context);
-    final mediaQuery = MediaQuery.of(context);
-    final width = mediaQuery.size.width;
-    final height = mediaQuery.size.height;
-    final paddingFactor = width * 0.02; // Adjust the padding based on screen width
-    final marginFactor = height * 0.01; // Adjust the margin based on screen height
-
-    return Padding(
-      padding: EdgeInsets.all(paddingFactor),
-      child: Column(
-        children: [
-          TableCalendar(
-            locale: 'ru_RU',
-            firstDay: DateTime.utc(2010, 10, 16),
-            lastDay: DateTime.utc(2030, 3, 14),
-            focusedDay: _focusedDay,
-            selectedDayPredicate: (day) {
-              return isSameDay(_selectedDay, day);
-            },
-            onDaySelected: (selectedDay, focusedDay) {
-              setState(() {
-                _selectedDay = selectedDay;
-                _focusedDay = focusedDay;
-              });
-            },
-            calendarFormat: _calendarFormat,
-            onFormatChanged: (format) {
-              setState(() {
-                _calendarFormat = format;
-              });
-            },
-            eventLoader: (day) => _getTasksForDay(day, todoLists),
-            calendarStyle: CalendarStyle(
-              selectedDecoration: BoxDecoration(
-                color: theme.colorScheme.primary,
-                shape: BoxShape.circle,
-              ),
-              todayDecoration: BoxDecoration(
-                color: theme.colorScheme.secondary,
-                shape: BoxShape.circle,
-              ),
-              weekendTextStyle: TextStyle(
-                color: theme.colorScheme.secondary,
-              ),
-              defaultTextStyle: TextStyle(
-                color: theme.textTheme.bodyMedium?.color,
-              ),
-              markerDecoration: BoxDecoration(
-                color: Colors.lightGreen,
-                shape: BoxShape.circle,
-              ),
-            ),
-            headerStyle: HeaderStyle(
-              formatButtonVisible: false,
-              titleCentered: true,
-              titleTextStyle: TextStyle(
-                color: theme.colorScheme.primary,
-                fontSize: width * 0.05, // Adjust the font size based on screen width
-              ),
-              leftChevronIcon: Icon(
-                Icons.chevron_left,
-                color: theme.colorScheme.primary,
-              ),
-              rightChevronIcon: Icon(
-                Icons.chevron_right,
-                color: theme.colorScheme.primary,
-              ),
-            ),
-            startingDayOfWeek: StartingDayOfWeek.monday,
-            calendarBuilders: CalendarBuilders(
-              dowBuilder: (context, day) {
-                switch (day.weekday) {
-                  case 1:
-                    return Center(
-                      child: Text('Пн', style: TextStyle(color: theme.textTheme.bodyMedium?.color)),
-                    );
-                  case 2:
-                    return Center(
-                      child: Text('Вт', style: TextStyle(color: theme.textTheme.bodyMedium?.color)),
-                    );
-                  case 3:
-                    return Center(
-                      child: Text('Ср', style: TextStyle(color: theme.textTheme.bodyMedium?.color)),
-                    );
-                  case 4:
-                    return Center(
-                      child: Text('Чт', style: TextStyle(color: theme.textTheme.bodyMedium?.color)),
-                    );
-                  case 5:
-                    return Center(
-                      child: Text('Пт', style: TextStyle(color: theme.textTheme.bodyMedium?.color)),
-                    );
-                  case 6:
-                    return Center(
-                      child: Text('Сб', style: TextStyle(color: theme.colorScheme.secondary)),
-                    );
-                  case 7:
-                    return Center(
-                      child: Text('Вс', style: TextStyle(color: theme.colorScheme.secondary)),
-                    );
-                  default:
-                    return SizedBox.shrink();
-                }
-              },
-              markerBuilder: (context, date, events) {
-                if (events.isNotEmpty) {
-                  return Positioned(
-                    bottom: 1,
-                    child: _buildEventsMarker(events.length, theme.colorScheme.secondary),
-                  );
-                }
-                return SizedBox.shrink();
-              },
-            ),
-          ),
-          SizedBox(height: marginFactor * 1.6), // Adjust the size based on margin factor
-          ElevatedButton(
-            onPressed: () {
-              Navigator.of(context).push(
-                MaterialPageRoute(
-                  builder: (context) => TaskCreationPage(
-                    selectedDate: _selectedDay,
-                  ),
-                ),
-              );
-            },
-            child: Text('Создать задачу'),
-          ),
-          SizedBox(height: marginFactor * 1.6), // Adjust the size based on margin factor
-          Expanded(
-            child: BlocBuilder<ScheduleBloc, ScheduleState>(
-              builder: (context, state) {
-                if (state is ScheduleLoaded) {
-                  List<Task> tasks = _getTasksForDay(_selectedDay!, state.todoLists);
-                  return tasks.isEmpty
-                      ? Center(child: Text('На этот день нет запланированных задач, отдыхайте!'))
-                      : ListView(
-                          padding: EdgeInsets.symmetric(horizontal: width * 0.04),
-                          children: tasks.map((task) {
-                            return Padding(
-                              padding: EdgeInsets.symmetric(vertical: marginFactor),
-                              child: TaskCard(task: task, onTap: () {}),
-                            );
-                          }).toList(),
-                        );
-                } else {
-                  return Center(child: Text('Ошибка загрузки задач.'));
-                }
-              },
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-
   Widget _buildEventsMarker(int count, Color color) {
-    final mediaQuery = MediaQuery.of(context);
-    final width = mediaQuery.size.width;
-
     return Container(
-      width: width * 0.05, // Adjust the size based on screen width
-      height: width * 0.05, // Adjust the size based on screen width
+      width: 20,
+      height: 20,
       decoration: BoxDecoration(
         color: color,
         shape: BoxShape.circle,
@@ -267,28 +234,9 @@ class _CalendarPageViewState extends State<CalendarPageView> with AutomaticKeepA
       child: Center(
         child: Text(
           count.toString(),
-          style: TextStyle(color: Colors.white, fontSize: width * 0.038), // Adjust the font size based on screen width
+          style: TextStyle(color: Colors.white, fontSize: 12),
         ),
       ),
     );
-  }
-
-  void _switchCalendarFormat() {
-    setState(() {
-      _calendarFormat = _getNextCalendarFormat();
-    });
-  }
-
-  CalendarFormat _getNextCalendarFormat() {
-    switch (_calendarFormat) {
-      case CalendarFormat.month:
-        return CalendarFormat.twoWeeks;
-      case CalendarFormat.twoWeeks:
-        return CalendarFormat.week;
-      case CalendarFormat.week:
-        return CalendarFormat.month;
-      default:
-        return CalendarFormat.month;
-    }
   }
 }

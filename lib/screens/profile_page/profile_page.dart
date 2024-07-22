@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:my_todo_app/screens/error_screen.dart';
+import 'package:my_todo_app/screens/profile_page/settings/general_settings.dart';
 import 'package:my_todo_app/screens/profile_page/skeleton_profile.dart';
 import '../../blocs/user/bloc.dart';
 import '../../models/user.dart';
@@ -21,7 +23,12 @@ class ProfilePage extends StatelessWidget {
                 SnackBarUtil.errorSnackBar(state.error),
               );
             });
-            return Center(child: Text('Не удалось загрузить пользователя'));
+            return ErrorScreen(
+              errorMessage: "Не удалось загрузить данные, проверьте ваше интернет соединение", 
+              onRetry: () {
+                context.read<UserBloc>().add(LoadUserRequested());
+              }
+            );
           } else {
             return ShimmerLoading();
           }
@@ -84,7 +91,7 @@ class _ProfileFormState extends State<ProfileForm> {
                   Icon(
                     Icons.person,
                     size: 64,
-                    color: Colors.blueAccent,
+                    color: Theme.of(context).colorScheme.primary,
                   ),
                   SizedBox(height: 16),
                   SizedBox(height: 16),
@@ -110,8 +117,6 @@ class _ProfileFormState extends State<ProfileForm> {
                             decoration: InputDecoration(
                               labelText: 'Имя',
                               border: OutlineInputBorder(),
-                              filled: true,
-                              fillColor: Colors.grey[200],
                               prefixIcon: Icon(Icons.person),
                             ),
                             onSaved: (value) {
@@ -124,8 +129,6 @@ class _ProfileFormState extends State<ProfileForm> {
                             decoration: InputDecoration(
                               labelText: 'Почта',
                               border: OutlineInputBorder(),
-                              filled: true,
-                              fillColor: Colors.grey[200],
                               prefixIcon: Icon(Icons.email),
                             ),
                             onSaved: (value) {
@@ -184,7 +187,12 @@ class _ProfileFormState extends State<ProfileForm> {
                     leading: Icon(Icons.settings),
                     title: Text('Общие настройки'),
                     onTap: () {
-                      // Функционал пока не реализован
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                          builder: (context) => GeneralSettingsScreen(),
+                        ),
+                      );
                     },
                   ),
                   ListTile(
