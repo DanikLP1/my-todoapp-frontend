@@ -2,6 +2,7 @@
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:my_todo_app/blocs/schedule/schedule_bloc.dart';
 import 'package:my_todo_app/blocs/schedule/schedule_event.dart';
+import 'package:my_todo_app/utils/hive_service.dart';
 
 import '../../utils/api_service.dart';
 import '../../repositories/auth_repository.dart';
@@ -13,8 +14,9 @@ class AuthBloc extends Bloc<AuthEvent, AuthState> {
   final UserBloc userBloc;
   final ScheduleBloc scheduleBloc;
   final ApiService apiService;
+  final HiveService hiveService;
 
-  AuthBloc({required this.authRepository, required this.userBloc, required this.scheduleBloc, required this.apiService}) : super(AuthInitial()) {
+  AuthBloc({required this.authRepository, required this.userBloc, required this.scheduleBloc, required this.apiService, required this.hiveService}) : super(AuthInitial()) {
     _checkAuthenticationStatus();
     on<LoginRequested>(_onLoginRequested);
     on<LogoutRequested>(_onLogoutRequested);
@@ -72,6 +74,7 @@ class AuthBloc extends Bloc<AuthEvent, AuthState> {
   Future<void> _onLogoutRequested(LogoutRequested event, Emitter<AuthState> emit) async {
     try {
       await authRepository.logout();
+      await hiveService.clearCache();
       emit(AuthUnauthenticated());
     } catch (e) {
       emit(AuthFailure(error: e.toString()));

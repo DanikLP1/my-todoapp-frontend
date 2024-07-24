@@ -1,7 +1,10 @@
 import 'dart:developer';
-
 import 'package:flutter/material.dart';
 import 'package:flutter_background/flutter_background.dart';
+import 'package:hive_flutter/adapters.dart';
+import 'package:my_todo_app/models/task.dart';
+import 'package:my_todo_app/models/todo_list.dart';
+import 'package:my_todo_app/utils/hive_service.dart';
 import 'package:provider/provider.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
@@ -58,13 +61,20 @@ Future<void> main() async {
     notificationTitle: "flutter_background example app",
     notificationText: "Background notification for keeping the example app running in the background",
     notificationImportance: AndroidNotificationImportance.Default,
-    notificationIcon: AndroidResource(name: 'background_icon', defType: 'drawable'), // Default is ic_launcher from folder mipmap
+    notificationIcon: AndroidResource(name: 'background_icon', defType: 'drawable'),
   );
   bool success = await FlutterBackground.initialize(androidConfig: androidConfig);
-  if(success) {
+  if (success) {
     FlutterBackground.enableBackgroundExecution();
   }
   log(success.toString());
+
+  await Hive.initFlutter();
+  Hive.registerAdapter(ToDoListAdapter());
+  Hive.registerAdapter(TaskAdapter());
+  await Hive.openBox<ToDoList>('todoListBox');
+
+  final hiveService = HiveService();
 
   runApp(
     MultiProvider(
@@ -73,14 +83,18 @@ Future<void> main() async {
           create: (context) => themeNotifier,
         ),
         Provider<ApiService>.value(value: apiService),
+        Provider<HiveService>.value(value: hiveService),
         ProxyProvider<ApiService, AuthRepository>(
           update: (context, apiService, _) => AuthRepository(apiService: apiService),
         ),
         ProxyProvider<ApiService, UserRepository>(
           update: (context, apiService, _) => UserRepository(apiService: apiService),
         ),
-        ProxyProvider<ApiService, ScheduleRepository>(
-          update: (context, apiService, _) => ScheduleRepository(apiService: apiService),
+        ProxyProvider2<ApiService, HiveService, ScheduleRepository>(
+          update: (context, apiService, hiveService, _) => ScheduleRepository(
+            apiService: apiService,
+            hiveService: hiveService,
+          ),
         ),
       ],
       child: MyApp(navigatorKey: navigatorKey),
@@ -110,6 +124,7 @@ class MyApp extends StatelessWidget {
         ),
         BlocProvider<AuthBloc>(
           create: (context) => AuthBloc(
+            hiveService: Provider.of<HiveService>(context, listen: false),
             authRepository: Provider.of<AuthRepository>(context, listen: false),
             scheduleBloc: Provider.of<ScheduleBloc>(context, listen: false),
             userBloc: BlocProvider.of<UserBloc>(context, listen: false),

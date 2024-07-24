@@ -3,6 +3,7 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:my_todo_app/models/todo_list.dart';
 import 'package:my_todo_app/models/task.dart';
 import 'package:my_todo_app/repositories/schedule_repository.dart';
+import 'package:uuid/uuid.dart';
 import 'schedule_event.dart';
 import 'schedule_state.dart';
 
@@ -14,26 +15,40 @@ class ScheduleBloc extends Bloc<ScheduleEvent, ScheduleState> {
     on<AddEventRequested>(_onAddEventRequested);
     on<RemoveEventRequested>(_onRemoveEventRequested);
     on<CompleteTaskRequested>(_onCompleteTaskRequested);
+    on<RefreshCacheRequested>(_onRefreshCacheRequested);
   }
 
   Future<void> _onLoadScheduleRequested(LoadScheduleRequested event, Emitter<ScheduleState> emit) async {
+    log('LoadScheduleRequested event received');
     emit(ScheduleLoading());
     try {
       final todoLists = await scheduleRepository.fetchToDoLists();
+      log('Fetched todo lists: ${todoLists.length} lists loaded');
       emit(ScheduleLoaded(todoLists));
     } catch (e) {
+      log('Failed to load schedule: $e', error: e);
+      emit(ScheduleError(e.toString()));
+    }
+  }
+
+  Future<void> _onRefreshCacheRequested(RefreshCacheRequested event, Emitter<ScheduleState> emit) async {
+    log('RefreshCacheRequested event received');
+    emit(ScheduleLoading());
+    try {
+      final todoLists = await scheduleRepository.refreshCache();
+      log('Fetched refreshed todo lists: ${todoLists.length} lists loaded');
+      emit(ScheduleLoaded(todoLists));
+    } catch (e) {
+      log('Failed to refresh cache: $e', error: e);
       emit(ScheduleError(e.toString()));
     }
   }
 
   Future<void> _onAddEventRequested(AddEventRequested event, Emitter<ScheduleState> emit) async {
     if (state is ScheduleLoaded) {
-      // Оптимистичное обновление состояния
-      final currentState = state as ScheduleLoaded;
-      final updatedTodoLists = List<ToDoList>.from(currentState.todoLists);
-
+      log('AddEventRequested event received');
       final newTask = Task(
-        id: DateTime.now().millisecondsSinceEpoch, // Временный ID для локального состояния
+        id: event.task.id,
         listId: event.task.listId,
         title: event.task.title,
         description: event.task.description,
@@ -43,77 +58,55 @@ class ScheduleBloc extends Bloc<ScheduleEvent, ScheduleState> {
         updatedAt: DateTime.now(),
       );
 
-      final listIndex = updatedTodoLists.indexWhere((list) => list.id == event.task.listId);
-      if (listIndex != -1) {
-        updatedTodoLists[listIndex].tasks.add(newTask);
-      }
-
-      emit(ScheduleLoaded(updatedTodoLists));
-
       try {
-        // Отправка данных на сервер
         await scheduleRepository.saveEvent(newTask);
-        // Синхронизация с сервером
-        final syncedTodoLists = await scheduleRepository.fetchToDoLists();
-        emit(ScheduleLoaded(syncedTodoLists));
+        final todoLists = await scheduleRepository.fetchToDoLists();
+        log('Fetched synced todo lists: ${todoLists.length} lists loaded');
+        emit(ScheduleUpdated(todoLists));
+        emit(ScheduleLoaded(todoLists));
       } catch (e) {
+        log('Failed to save new task: $e', error: e);
         emit(ScheduleError(e.toString()));
       }
+    } else {
+      log('AddEventRequested event received but state is not ScheduleLoaded');
     }
   }
 
   Future<void> _onRemoveEventRequested(RemoveEventRequested event, Emitter<ScheduleState> emit) async {
     if (state is ScheduleLoaded) {
-      // Оптимистичное обновление состояния
-      final currentState = state as ScheduleLoaded;
-      final updatedTodoLists = List<ToDoList>.from(currentState.todoLists);
-
-      final listIndex = updatedTodoLists.indexWhere((list) => list.id == event.listId);
-      if (listIndex != -1) {
-        updatedTodoLists[listIndex].tasks.removeWhere((task) => task.id == event.taskId);
-      }
-
-      emit(ScheduleLoaded(updatedTodoLists));
-
+      log('RemoveEventRequested event received');
       try {
-        // Отправка данных на сервер
         await scheduleRepository.deleteEvent(event.listId, event.taskId);
-        // Синхронизация с сервером
-        final syncedTodoLists = await scheduleRepository.fetchToDoLists();
-        emit(ScheduleLoaded(syncedTodoLists));
+        final todoLists = await scheduleRepository.fetchToDoLists();
+        log('Fetched synced todo lists: ${todoLists.length} lists loaded');
+        emit(ScheduleUpdated(todoLists));
+        emit(ScheduleLoaded(todoLists));
       } catch (e) {
+        log('Failed to delete task: $e', error: e);
         emit(ScheduleError(e.toString()));
       }
+    } else {
+      log('RemoveEventRequested event received but state is not ScheduleLoaded');
     }
   }
 
   Future<void> _onCompleteTaskRequested(CompleteTaskRequested event, Emitter<ScheduleState> emit) async {
     if (state is ScheduleLoaded) {
-      // Оптимистичное обновление состояния
-      final currentState = state as ScheduleLoaded;
-      final updatedTodoLists = List<ToDoList>.from(currentState.todoLists);
-
-      final listIndex = updatedTodoLists.indexWhere((list) => list.id == event.task.listId);
-      if (listIndex != -1) {
-        final taskIndex = updatedTodoLists[listIndex].tasks.indexWhere((task) => task.id == event.task.id);
-        if (taskIndex != -1) {
-          final updatedTask = event.task.markAsCompleted();
-          updatedTodoLists[listIndex].tasks[taskIndex] = updatedTask;
-        }
-      }
-
-      emit(ScheduleLoaded(updatedTodoLists));
-
+      log('CompleteTaskRequested event received');
       try {
-        // Отправка данных на сервер
         final completedTask = event.task.markAsCompleted();
         await scheduleRepository.updateEvent(completedTask);
-        // Синхронизация с сервером
-        final syncedTodoLists = await scheduleRepository.fetchToDoLists();
-        emit(ScheduleLoaded(syncedTodoLists));
+        final todoLists = await scheduleRepository.fetchToDoLists();
+        log('Fetched synced todo lists: ${todoLists.length} lists loaded');
+        emit(ScheduleUpdated(todoLists));
+        emit(ScheduleLoaded(todoLists));
       } catch (e) {
+        log('Failed to update task: $e', error: e);
         emit(ScheduleError(e.toString()));
       }
+    } else {
+      log('CompleteTaskRequested event received but state is not ScheduleLoaded');
     }
   }
 }

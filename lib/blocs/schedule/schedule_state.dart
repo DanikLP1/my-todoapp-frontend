@@ -22,6 +22,15 @@ class ScheduleLoaded extends ScheduleState {
   List<Object> get props => [todoLists];
 }
 
+class ScheduleUpdated extends ScheduleState {
+  final List<ToDoList> todoLists;
+  
+  const ScheduleUpdated(this.todoLists);
+
+  @override
+  List<Object> get props => [todoLists];
+}
+
 class ScheduleError extends ScheduleState {
   final String error;
 

@@ -24,16 +24,17 @@ class CalendarPage extends StatelessWidget {
           }
         },
         builder: (context, state) {
-          if (state is ScheduleLoaded) {
+          if (state is ScheduleLoaded || state is ScheduleUpdated) {
+            final todoLists = state is ScheduleLoaded ? state.todoLists : (state as ScheduleUpdated).todoLists;
             return Column(
               children: [
                 Expanded(
                   child: RefreshIndicator(
                     onRefresh: () async {
-                      context.read<ScheduleBloc>().add(LoadScheduleRequested());
+                      context.read<ScheduleBloc>().add(RefreshCacheRequested());
                     },
                     child: CalendarPageView(
-                      toDoLists: state.todoLists,
+                      toDoLists: todoLists,
                     ),
                   ),
                 ),
@@ -84,7 +85,7 @@ class _CalendarPageViewState extends State<CalendarPageView> with AutomaticKeepA
   late List<ToDoList> todoLists;
   late DateTime _focusedDay;
   DateTime? _selectedDay;
-  CalendarFormat _calendarFormat = CalendarFormat.month;
+  CalendarFormat _calendarFormat = CalendarFormat.week;
 
   @override
   bool get wantKeepAlive => true;
@@ -100,115 +101,117 @@ class _CalendarPageViewState extends State<CalendarPageView> with AutomaticKeepA
   @override
   Widget build(BuildContext context) {
     super.build(context); // Ensure that super.build is called for AutomaticKeepAliveClientMixin
-    return BlocBuilder<ScheduleBloc, ScheduleState>(
-      builder: (context, state) {
-        if (state is ScheduleLoaded) {
-          todoLists = state.todoLists; // Обновление списка задач
+    return BlocListener<ScheduleBloc, ScheduleState>(
+      listener: (context, state) {
+        if (state is ScheduleLoaded || state is ScheduleUpdated) {
+          setState(() {
+            todoLists = state is ScheduleLoaded ? state.todoLists : (state as ScheduleUpdated).todoLists;
+          });
         }
-        return Padding(
-          padding: EdgeInsets.all(16),
-          child: Column(
-            children: [
-              TableCalendar(
-                locale: 'ru_RU',
-                firstDay: DateTime.utc(2010, 10, 16),
-                lastDay: DateTime.utc(2030, 3, 14),
-                focusedDay: _focusedDay,
-                selectedDayPredicate: (day) {
-                  return isSameDay(_selectedDay, day);
-                },
-                onDaySelected: (selectedDay, focusedDay) {
-                  setState(() {
-                    _selectedDay = selectedDay;
-                    _focusedDay = focusedDay;
-                  });
-                },
-                calendarFormat: _calendarFormat,
-                onFormatChanged: (format) {
-                  setState(() {
-                    _calendarFormat = format;
-                  });
-                },
-                startingDayOfWeek: StartingDayOfWeek.monday,
-                eventLoader: (day) => _getTasksForDay(day, todoLists),
-                calendarStyle: CalendarStyle(
-                  selectedDecoration: BoxDecoration(
-                    color: Theme.of(context).colorScheme.primary,
-                    shape: BoxShape.circle,
-                  ),
-                  todayDecoration: BoxDecoration(
-                    color: Theme.of(context).colorScheme.secondary,
-                    shape: BoxShape.circle,
-                  ),
-                  weekendTextStyle: TextStyle().copyWith(color: Theme.of(context).colorScheme.secondary), // Цвет выходных
-                ),
-                headerStyle: HeaderStyle(
-                  formatButtonVisible: false,
-                  titleCentered: true,
-                  titleTextStyle: TextStyle(
-                    color: Theme.of(context).colorScheme.secondary
-                  ),
-                  rightChevronIcon: Icon(
-                    Icons.chevron_right_rounded,
-                    color: Theme.of(context).colorScheme.secondary,
-                  ),
-                  leftChevronIcon: Icon(
-                    Icons.chevron_left_rounded,
-                    color: Theme.of(context).colorScheme.secondary,
-                  )
-                ),
-                calendarBuilders: CalendarBuilders(
-                  dowBuilder: (context, day) {
-                    if (day.weekday == DateTime.saturday || day.weekday == DateTime.sunday) {
-                      final text = DateFormat.E('ru_RU').format(day);
-                      return Center(
-                        child: Text(
-                          text,
-                          style: TextStyle(color: Theme.of(context).colorScheme.secondary),
-                        ),
-                      );
-                    }
-                    return null;
-                  },
-                  markerBuilder: (context, date, events) {
-                    if (events.isNotEmpty) {
-                      return Positioned(
-                        bottom: 1,
-                        child: _buildEventsMarker(events.length, Theme.of(context).colorScheme.secondary),
-                      );
-                    }
-                    return SizedBox.shrink();
-                  },
-                ),
-              ),
-              SizedBox(height: 16),
-              ElevatedButton(
-                onPressed: () {
-                  Navigator.of(context).push(
-                    MaterialPageRoute(
-                      builder: (context) => TaskCreationPage(
-                        selectedDate: _selectedDay,
-                      ),
-                    ),
-                  );
-                },
-                child: Text('Создать задачу'),
-              ),
-              SizedBox(height: 16),
-              Expanded(
-                child: ListView(
-                  children: _getTasksForDay(_selectedDay ?? DateTime.now(), todoLists)
-                      .map((task) => Padding(
-                            padding: EdgeInsets.symmetric(vertical: 8),
-                            child: TaskCard(task: task, onTap: () {}),
-                          ))
-                      .toList(),
-                ),
-              ),
-            ],
-          ),
-        );
       },
+      child: Padding(
+        padding: EdgeInsets.all(16),
+        child: Column(
+          children: [
+            TableCalendar(
+              locale: 'ru_RU',
+              firstDay: DateTime.utc(2010, 10, 16),
+              lastDay: DateTime.utc(2030, 3, 14),
+              focusedDay: _focusedDay,
+              selectedDayPredicate: (day) {
+                return isSameDay(_selectedDay, day);
+              },
+              onDaySelected: (selectedDay, focusedDay) {
+                setState(() {
+                  _selectedDay = selectedDay;
+                  _focusedDay = focusedDay;
+                });
+              },
+              calendarFormat: _calendarFormat,
+              onFormatChanged: (format) {
+                setState(() {
+                  _calendarFormat = format;
+                });
+              },
+              startingDayOfWeek: StartingDayOfWeek.monday,
+              eventLoader: (day) => _getTasksForDay(day, widget.toDoLists),
+              calendarStyle: CalendarStyle(
+                selectedDecoration: BoxDecoration(
+                  color: Theme.of(context).colorScheme.primary,
+                  shape: BoxShape.circle,
+                ),
+                todayDecoration: BoxDecoration(
+                  color: Theme.of(context).colorScheme.secondary,
+                  shape: BoxShape.circle,
+                ),
+                weekendTextStyle: TextStyle().copyWith(color: Theme.of(context).colorScheme.secondary), // Цвет выходных
+              ),
+              headerStyle: HeaderStyle(
+                formatButtonVisible: false,
+                titleCentered: true,
+                titleTextStyle: TextStyle(
+                  color: Theme.of(context).colorScheme.secondary
+                ),
+                rightChevronIcon: Icon(
+                  Icons.chevron_right_rounded,
+                  color: Theme.of(context).colorScheme.secondary,
+                ),
+                leftChevronIcon: Icon(
+                  Icons.chevron_left_rounded,
+                  color: Theme.of(context).colorScheme.secondary,
+                )
+              ),
+              calendarBuilders: CalendarBuilders(
+                dowBuilder: (context, day) {
+                  if (day.weekday == DateTime.saturday || day.weekday == DateTime.sunday) {
+                    final text = DateFormat.E('ru_RU').format(day);
+                    return Center(
+                      child: Text(
+                        text,
+                        style: TextStyle(color: Theme.of(context).colorScheme.secondary),
+                      ),
+                    );
+                  }
+                  return null;
+                },
+                markerBuilder: (context, date, events) {
+                  if (events.isNotEmpty) {
+                    return Positioned(
+                      bottom: 1,
+                      child: _buildEventsMarker(events.length, Theme.of(context).colorScheme.secondary),
+                    );
+                  }
+                  return SizedBox.shrink();
+                },
+              ),
+            ),
+            SizedBox(height: 16),
+            ElevatedButton(
+              onPressed: () {
+                Navigator.of(context).push(
+                  MaterialPageRoute(
+                    builder: (context) => TaskCreationPage(
+                      selectedDate: _selectedDay,
+                    ),
+                  ),
+                );
+              },
+              child: Text('Создать задачу'),
+            ),
+            SizedBox(height: 16),
+            Expanded(
+              child: ListView(
+                children: _getTasksForDay(_selectedDay ?? DateTime.now(), todoLists)
+                    .map((task) => Padding(
+                          padding: EdgeInsets.symmetric(vertical: 8),
+                          child: TaskCard(task: task, onTap: () {}),
+                        ))
+                    .toList(),
+              ),
+            ),
+          ],
+        ),
+      ),
     );
   }
 
@@ -218,7 +221,7 @@ class _CalendarPageViewState extends State<CalendarPageView> with AutomaticKeepA
           todoList.date == null
               ? DateTime(todoList.createdAt.year, todoList.createdAt.month, todoList.createdAt.day).isAtSameMomentAs(DateTime(day.year, day.month, day.day))
               : DateTime(todoList.date!.year, todoList.date!.month, todoList.date!.day).isAtSameMomentAs(DateTime(day.year, day.month, day.day)),
-      orElse: () => ToDoList(id: -1, userId: -1, title: '', date: null, createdAt: day, updatedAt: day, tasks: []),
+      orElse: () => ToDoList(id: '', userId: '', title: '', date: null, createdAt: day, updatedAt: day, tasks: []),
     );
     return selectedToDoList.tasks;
   }

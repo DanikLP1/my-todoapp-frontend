@@ -20,6 +20,7 @@ class _TaskCardState extends State<TaskCard> with SingleTickerProviderStateMixin
   late final Animation<double> _scaleAnimation;
   late final Animation<double> _opacityAnimation;
   late Color _cardColor;
+  late Task _task;
 
   @override
   void initState() {
@@ -39,6 +40,8 @@ class _TaskCardState extends State<TaskCard> with SingleTickerProviderStateMixin
       parent: _animationController,
       curve: Curves.easeInOut,
     ));
+
+    _task = widget.task;
   }
 
   @override

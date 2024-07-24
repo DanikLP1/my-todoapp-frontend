@@ -9,6 +9,7 @@ abstract class ScheduleEvent extends Equatable {
 }
 
 class LoadScheduleRequested extends ScheduleEvent {}
+class RefreshCacheRequested extends ScheduleEvent {}
 
 class AddEventRequested extends ScheduleEvent {
   final Task task;
@@ -20,8 +21,8 @@ class AddEventRequested extends ScheduleEvent {
 }
 
 class RemoveEventRequested extends ScheduleEvent {
-  final int listId;
-  final int taskId;
+  final String listId;
+  final String taskId;
 
   RemoveEventRequested(this.listId, this.taskId);
 

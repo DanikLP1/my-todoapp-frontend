@@ -6,7 +6,6 @@ import 'package:my_todo_app/models/todo_list.dart';
 import 'package:my_todo_app/screens/calendar_page/skeleton_calendar.dart';
 import 'package:my_todo_app/screens/error_screen.dart';
 import 'package:my_todo_app/screens/widgets/task_card.dart';
-import 'package:my_todo_app/utils/notifications.dart';
 import 'package:my_todo_app/utils/snackbar_util.dart';
 
 class HomePage extends StatelessWidget {
@@ -15,8 +14,9 @@ class HomePage extends StatelessWidget {
     return Scaffold(
       body: BlocBuilder<ScheduleBloc, ScheduleState>(
         builder: (context, state) {
-          if (state is ScheduleLoaded) {
-            return HomePageView(todoLists: state.todoLists);
+          if (state is ScheduleLoaded || state is ScheduleUpdated) {
+            final todoLists = state is ScheduleLoaded ? state.todoLists : (state as ScheduleUpdated).todoLists;
+            return HomePageView(todoLists: todoLists);
           } else if (state is ScheduleLoading) {
             return HomePageViewSkeleton();
           } else if (state is ScheduleError) {
@@ -69,9 +69,10 @@ class HomePageView extends StatelessWidget {
     return BlocBuilder<ScheduleBloc, ScheduleState>(
       builder: (context, state) {
         List<Task> todayTasks = [];
-        if (state is ScheduleLoaded) {
-          DateTime today = DateTime.now();
-          for (var todoList in state.todoLists) {
+        DateTime today = DateTime.now();
+        if (state is ScheduleLoaded || state is ScheduleUpdated) {
+          final todoLists = state is ScheduleLoaded ? state.todoLists : (state as ScheduleUpdated).todoLists;
+          for (var todoList in todoLists) {
             if (todoList.date != null && isSameDay(todoList.date!, today)) {
               todayTasks.addAll(todoList.tasks);
             }
@@ -80,7 +81,7 @@ class HomePageView extends StatelessWidget {
 
         return RefreshIndicator(
           onRefresh: () async {
-            context.read<ScheduleBloc>().add(LoadScheduleRequested());
+            context.read<ScheduleBloc>().add(RefreshCacheRequested());
           },
           child: Padding(
             padding: const EdgeInsets.all(8.0),

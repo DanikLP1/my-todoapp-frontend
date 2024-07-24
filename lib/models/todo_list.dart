@@ -1,13 +1,24 @@
+import 'package:hive/hive.dart';
 import 'package:equatable/equatable.dart';
 import 'task.dart';
 
+part 'todo_list.g.dart'; // Этот файл будет автоматически сгенерирован
+
+@HiveType(typeId: 0)
 class ToDoList extends Equatable {
-  final int id;
-  final int userId;
+  @HiveField(0)
+  final String id;
+  @HiveField(1)
+  final String userId;
+  @HiveField(2)
   final String title;
+  @HiveField(3)
   final DateTime? date;
+  @HiveField(4)
   final DateTime createdAt;
+  @HiveField(5)
   final DateTime updatedAt;
+  @HiveField(6)
   final List<Task> tasks;
 
   ToDoList({
@@ -47,8 +58,8 @@ class ToDoList extends Equatable {
   }
 
   ToDoList copyWith({
-    int? id,
-    int? userId,
+    String? id,
+    String? userId,
     String? title,
     DateTime? date,
     DateTime? createdAt,

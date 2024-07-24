@@ -7,6 +7,7 @@ import 'package:my_todo_app/blocs/schedule/schedule_bloc.dart';
 import 'package:my_todo_app/blocs/schedule/schedule_event.dart';
 import 'package:my_todo_app/models/task.dart';
 import 'package:my_todo_app/utils/notifications.dart';
+import 'package:uuid/uuid.dart';
 
 class TaskCreationPage extends StatefulWidget {
   final DateTime? selectedDate;
@@ -177,8 +178,8 @@ class _TaskCreationPageState extends State<TaskCreationPage> {
       log(_selectedTime.toString());
 
       final task = Task(
-        id: 0, // Замените на реальный ID
-        listId: 0, // Замените на реальный ID списка
+        id: Uuid().v4(), // Замените на реальный ID
+        listId: Uuid().v4(), // Замените на реальный ID списка
         title: _titleController.text,
         description: _descriptionController.text,
         dueDate: selectedDateTime,

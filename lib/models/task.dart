@@ -1,13 +1,25 @@
+import 'package:hive/hive.dart';
 import 'package:equatable/equatable.dart';
 
+part 'task.g.dart'; // Этот файл будет автоматически сгенерирован
+
+@HiveType(typeId: 1)
 class Task extends Equatable {
-  final int id;
-  final int listId;
+  @HiveField(0)
+  final String id;
+  @HiveField(1)
+  late String listId;
+  @HiveField(2)
   final String title;
+  @HiveField(3)
   final String description;
+  @HiveField(4)
   final DateTime? dueDate;
+  @HiveField(5)
   final bool completed;
+  @HiveField(6)
   final DateTime createdAt;
+  @HiveField(7)
   final DateTime updatedAt;
 
   Task({
@@ -36,10 +48,14 @@ class Task extends Equatable {
 
   Map<String, dynamic> toJson() {
     return {
+      'id': id,
+      'listId': listId,
       'title': title,
       'description': description,
       'dueDate': dueDate?.toIso8601String(),
       'completed': completed,
+      'createdAt': createdAt.toIso8601String(),
+      'updatedAt': updatedAt.toIso8601String(),
     };
   }
 
